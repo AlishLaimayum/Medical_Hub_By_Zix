@@ -34,7 +34,7 @@
   --radius-lg: 8px;
 
   --topbar-height: 48px;
-  --inspector-width: 320px;
+  --inspector-width: 360px;
 }
 
 /* Base resets & layout */
@@ -740,9 +740,68 @@
 }
 
 /* ==========================================================================
-   4. Collapsible Right Inspector Panel (Docked)
+/* ==========================================================================
+   4. Collapsible & Draggable Inspector Panel + Resize Divider
    ========================================================================== */
+
+/* ── Resize Divider ──────────────────────────────────────────────────────── */
+.inspector-resize-divider {
+  /* Sits between viewport column and inspector panel in the flex row */
+  position: relative;
+  width: 8px;
+  flex-shrink: 0;
+  align-self: stretch;
+  z-index: 30;
+  cursor: col-resize;
+  /* Invisible background – only the ::before pseudo creates the visible line */
+  background: transparent;
+  touch-action: none; /* prevent scroll interference on touch */
+}
+
+.inspector-resize-divider::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  background-color: var(--border);
+  transition: background-color 0.12s ease, width 0.12s ease;
+  border-radius: 1px;
+}
+
+.inspector-resize-divider:hover::before,
+.inspector-resize-divider.active::before {
+  width: 3px;
+  background-color: #38BDF8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.5);
+}
+
+/* Tiny grip dots on the divider midpoint */
+.inspector-resize-divider::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 28px;
+  border-radius: 2px;
+  background: radial-gradient(circle, var(--border) 1.5px, transparent 1.5px) center / 4px 7px repeat-y;
+  opacity: 0.6;
+  transition: opacity 0.12s ease;
+  pointer-events: none;
+}
+
+.inspector-resize-divider:hover::after,
+.inspector-resize-divider.active::after {
+  opacity: 1;
+}
+/* ─────────────────────────────────────────────────────────────────────────── */
+
 .clinical-inspector-dock {
+  /* Width driven by inline style in docked mode; floating overrides below */
   width: var(--inspector-width);
   background-color: var(--surface);
   border-left: 1px solid var(--border);
@@ -751,17 +810,107 @@
   flex-shrink: 0;
   z-index: 25;
   overflow: hidden;
+  /* Transition only when NOT actively resizing – toggled via .resizing-inspector class on workspace */
+  transition: none;
+}
+
+/* Floating Draggable Window Mode */
+.clinical-inspector-dock.floating {
+  position: fixed;
+  z-index: 100;
+  width: 420px;
+  min-width: 320px;
+  max-width: min(900px, calc(100vw - 20px));
+  height: 640px;
+  min-height: 320px;
+  max-height: calc(100vh - 66px);
+  resize: both;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(56, 189, 248, 0.4);
+  background: rgba(11, 17, 23, 0.97);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  animation: inspectorFloatIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              top 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              left 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.15s ease;
+}
+
+/* Full-Screen / Full-Expand Mode */
+.clinical-inspector-dock.floating.expanded {
+  width: calc(100vw - 20px) !important;
+  height: calc(100vh - 66px) !important;
+  top: 56px !important;
+  left: 10px !important;
+  resize: none;
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 2px #38BDF8, 0 30px 80px rgba(0, 0, 0, 0.9);
+  border-color: rgba(56, 189, 248, 0.6);
+}
+
+.clinical-inspector-dock.floating.dragging {
+  cursor: grabbing;
+  user-select: none;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9), 0 0 0 1.5px #38BDF8;
+}
+
+@keyframes inspectorFloatIn {
+  from {
+    opacity: 0.8;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .inspector-dock-header {
-  height: 38px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 14px;
+  padding: 0 12px;
   background-color: var(--surface-raised);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  cursor: grab;
+  user-select: none;
+}
+
+.clinical-inspector-dock.floating .inspector-dock-header {
+  cursor: grab;
+}
+
+.clinical-inspector-dock.floating.dragging .inspector-dock-header {
+  cursor: grabbing;
+}
+
+.dock-header-drag-zone {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  cursor: grab;
+}
+
+.clinical-inspector-dock.floating.dragging .dock-header-drag-zone {
+  cursor: grabbing;
+}
+
+.dock-drag-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.dock-header-drag-zone:hover .dock-drag-icon {
+  color: #38BDF8;
 }
 
 .dock-header-title {
@@ -772,6 +921,60 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.floating-mode-pill {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  background-color: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38BDF8;
+  white-space: nowrap;
+}
+
+.dock-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.dock-tool-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.dock-tool-btn:hover {
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+/* Active accent for the expand/maximize button when in expanded mode */
+.dock-tool-btn.active-accent {
+  background-color: rgba(56, 189, 248, 0.18);
+  color: #38BDF8;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+}
+
+.dock-tool-btn.active-accent:hover {
+  background-color: rgba(56, 189, 248, 0.28);
+  color: #7DD3FC;
 }
 
 .dock-close-btn {
@@ -781,8 +984,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: var(--radius-xs);
   cursor: pointer;
   transition: all 0.1s ease;
@@ -800,6 +1003,65 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.inspector-dock-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.inspector-dock-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.inspector-dock-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+.inspector-dock-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--border-focus);
+}
+
+/* Full-Screen Expanded Layout — two-column grid for easy reading */
+.clinical-inspector-dock.floating.expanded .inspector-dock-scroll {
+  padding: 20px 32px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 20px;
+  align-content: start;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Ensure cards don't overflow in expanded grid */
+.clinical-inspector-dock.floating.expanded .inspector-panel-content {
+  display: contents; /* let children flow into the grid */
+}
+
+/* Widened spec table rows in expanded mode */
+.clinical-inspector-dock.floating.expanded .spec-row {
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+.clinical-inspector-dock.floating.expanded .spec-param {
+  font-size: 12px;
+}
+
+.clinical-inspector-dock.floating.expanded .spec-data {
+  font-size: 13px;
+}
+
+.clinical-inspector-dock.floating.expanded .entity-anatomical-name {
+  font-size: 18px;
+}
+
+.clinical-inspector-dock.floating.expanded .morphology-text-card p {
+  font-size: 13.5px;
+  line-height: 1.7;
 }
 
 /* Empty State */
@@ -952,10 +1214,11 @@
 }
 
 .entity-anatomical-name {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.3;
+  color: #F8FAFC;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
 }
 
 .entity-common-row {
@@ -965,17 +1228,18 @@
 }
 
 .entity-common-name {
-  font-size: 11px;
-  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  color: #94A3B8;
 }
 
 .entity-class-chip {
-  font-size: 9px;
+  font-size: 9.5px;
   font-weight: 600;
   background-color: var(--surface);
   border: 1px solid var(--border);
   color: var(--accent);
-  padding: 1px 6px;
+  padding: 2px 7px;
   border-radius: var(--radius-xs);
 }
 
@@ -987,10 +1251,10 @@
 }
 
 .section-label {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  color: #94A3B8;
 }
 
 .spec-table {
@@ -1005,9 +1269,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 7px 10px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--border-subtle);
-  font-size: 11px;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .spec-row:last-child {
@@ -1017,23 +1282,26 @@
 .spec-row.full {
   flex-direction: column;
   align-items: flex-start;
-  gap: 3px;
+  gap: 4px;
 }
 
 .spec-param {
-  color: var(--text-muted);
-  font-size: 10px;
+  color: #94A3B8;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .spec-data {
-  color: var(--text-primary);
+  color: #F1F5F9;
   font-weight: 500;
   text-align: right;
+  font-size: 12px;
 }
 
 .spec-row.full .spec-data {
   text-align: left;
-  line-height: 1.4;
+  line-height: 1.55;
+  color: #E2E8F0;
 }
 
 /* Morphology Text */
@@ -1041,13 +1309,13 @@
   background-color: var(--surface-raised);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 10px;
+  padding: 12px;
 }
 
 .morphology-text-card p {
-  font-size: 11px;
-  line-height: 1.5;
-  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+  color: #CBD5E1;
 }
 
 /* Action Stack */

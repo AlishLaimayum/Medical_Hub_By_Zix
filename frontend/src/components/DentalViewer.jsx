@@ -27,6 +27,11 @@ import {
   Pipette,
   Zap,
   Tag,
+  GripHorizontal,
+  Pin,
+  PinOff,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 
 import { TEETH_DATA, ALL_TEETH_IDS, TOOTH_TYPES_CONFIG } from "../data/teethData";
@@ -101,6 +106,7 @@ function InteractiveJawModel({
   onSelectArch,
   onHoverArch,
   modelRef,
+  isOrbitingRef,
 }) {
   const { scene } = useGLTF(
     "/models/dental/dentition/complete_adult_dentition_and_jaws.glb"
@@ -409,6 +415,7 @@ function InteractiveJawModel({
         }
       }}
       onPointerOver={(e) => {
+        if (isOrbitingRef?.current) return;
         e.stopPropagation();
         const meshName = e.object.name;
         if (meshName.startsWith("tooth-")) {
@@ -423,6 +430,7 @@ function InteractiveJawModel({
         }
       }}
       onPointerOut={(e) => {
+        if (isOrbitingRef?.current) return;
         e.stopPropagation();
         onHoverTooth(null);
         if (onHoverArch) onHoverArch(null);
@@ -430,6 +438,67 @@ function InteractiveJawModel({
       }}
     />
   );
+}
+
+// --- Bounding Box & Camera Framing Calculations ---
+// Calculates bounding box of all visible meshes across jaws and nerves
+function getVisibleBounds(rootObj, nervesObj) {
+  const box = new THREE.Box3();
+
+  const expandWithVisible = (obj) => {
+    if (!obj) return;
+    obj.updateWorldMatrix(true, true);
+    obj.traverse((child) => {
+      if (child.isMesh && child.visible && child.geometry) {
+        if (!child.geometry.boundingBox) {
+          child.geometry.computeBoundingBox();
+        }
+        if (child.geometry.boundingBox) {
+          const meshBox = new THREE.Box3();
+          meshBox.copy(child.geometry.boundingBox).applyMatrix4(child.matrixWorld);
+          box.union(meshBox);
+        }
+      }
+    });
+  };
+
+  expandWithVisible(rootObj);
+  expandWithVisible(nervesObj);
+
+  // Fallback to standard setFromObject if box is still empty
+  if (box.isEmpty() && rootObj) {
+    box.setFromObject(rootObj);
+    if (nervesObj) {
+      const nBox = new THREE.Box3().setFromObject(nervesObj);
+      if (!nBox.isEmpty()) box.union(nBox);
+    }
+  }
+
+  return box;
+}
+
+// Compute comfortable framing distance based on bounding box, camera FOV, and aspect ratio
+function computeFrameDistance(box, camera, marginFactor = 1.20) {
+  if (!box || box.isEmpty()) return 13.5;
+
+  const size = new THREE.Vector3();
+  box.getSize(size);
+
+  // Vertical and horizontal FOV in radians
+  const vFovRad = (camera.fov * Math.PI) / 180;
+  const aspect = camera.aspect || 1.0;
+  const halfVFov = vFovRad / 2;
+  const halfHFov = Math.atan(Math.tan(halfVFov) * aspect);
+
+  // Distances to fit bounding box dimensions
+  const distY = (size.y * 0.5) / Math.tan(halfVFov);
+  const distX = (size.x * 0.5) / Math.tan(halfHFov);
+
+  // Depth buffer margin so front faces are not at the near clipping plane
+  const depthPadding = (size.z * 0.5) * 0.4;
+
+  const baseDist = Math.max(distY, distX) + depthPadding;
+  return Math.max(baseDist * marginFactor, 5.0);
 }
 
 // --- Camera Target and Preset Controller ---
@@ -441,12 +510,72 @@ function CameraController({
   nervesModelRef,
   focusSignal,
   viewPreset,
+  presetTick,
+  archFilter,
+  isOrbitingRef,
 }) {
+  const { camera } = useThree();
   const targetPos = useRef(new THREE.Vector3(0, 0, 0));
+  const cameraPos = useRef(null);
   const isTransitioning = useRef(false);
+  const hasInitializedRef = useRef(false);
+  const prevArchFilterRef = useRef(archFilter);
+
+  // 1. Initial Framing: Frame entire model once geometry is ready
+  useFrame(() => {
+    if (!hasInitializedRef.current && controlsRef.current && modelRef.current) {
+      const box = getVisibleBounds(modelRef.current, nervesModelRef?.current);
+      if (!box.isEmpty()) {
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        const fitDist = computeFrameDistance(box, camera, 1.34);
+
+        const controls = controlsRef.current;
+        targetPos.current.copy(center);
+        controls.target.copy(center);
+
+        // Position camera in front of model at the dynamically calculated distance
+        controls.object.position.set(center.x, center.y, center.z + fitDist);
+        controls.object.lookAt(center);
+        controls.update();
+
+        hasInitializedRef.current = true;
+      }
+    }
+
+    // 2. Smooth programmatic transitions (presets, focus signal, deselect)
+    if (isTransitioning.current && controlsRef.current) {
+      // If user starts orbiting manually, immediately cancel transition
+      if (isOrbitingRef?.current) {
+        isTransitioning.current = false;
+        return;
+      }
+
+      const controls = controlsRef.current;
+      controls.target.lerp(targetPos.current, 0.14);
+      if (cameraPos.current) {
+        controls.object.position.lerp(cameraPos.current, 0.14);
+      }
+      controls.update();
+
+      const targetReached = controls.target.distanceTo(targetPos.current) < 0.005;
+      const cameraReached =
+        !cameraPos.current ||
+        controls.object.position.distanceTo(cameraPos.current) < 0.01;
+
+      if (targetReached && cameraReached) {
+        controls.target.copy(targetPos.current);
+        if (cameraPos.current) controls.object.position.copy(cameraPos.current);
+        controls.update();
+        isTransitioning.current = false;
+      }
+    }
+  });
 
   // Smoothly center orbit pivot on selected tooth or selected nerve
   useEffect(() => {
+    if (!controlsRef.current) return;
+
     if (selectedTooth && modelRef.current) {
       const toothObj = modelRef.current.getObjectByName(selectedTooth);
       if (toothObj) {
@@ -454,75 +583,118 @@ function CameraController({
         const center = new THREE.Vector3();
         box.getCenter(center);
         targetPos.current.copy(center);
+        cameraPos.current = null; // keep current camera distance & angle
         isTransitioning.current = true;
       }
     } else if (selectedNerve) {
       const nerveData = DENTAL_NERVES_DATA[selectedNerve];
       if (nerveData && nerveData.labelPosition) {
         targetPos.current.set(...nerveData.labelPosition);
+        cameraPos.current = null;
         isTransitioning.current = true;
       }
-    } else if (!selectedTooth && !selectedNerve) {
-      targetPos.current.set(0, 0, 0);
-      isTransitioning.current = true;
+    } else if (!selectedTooth && !selectedNerve && hasInitializedRef.current) {
+      if (modelRef.current) {
+        const box = getVisibleBounds(modelRef.current, nervesModelRef?.current);
+        if (!box.isEmpty()) {
+          const center = new THREE.Vector3();
+          box.getCenter(center);
+          targetPos.current.copy(center);
+          cameraPos.current = null;
+          isTransitioning.current = true;
+        }
+      }
     }
   }, [selectedTooth, selectedNerve, focusSignal, modelRef]);
 
-  // Handle Preset Viewpoints
+  // Handle Preset Viewpoints (Front, Superior, Inferior, Right, Left, Reset)
   useEffect(() => {
-    if (!controlsRef.current) return;
-    const controls = controlsRef.current;
+    if (!controlsRef.current || !modelRef.current) return;
+    if (!hasInitializedRef.current) return;
+
+    const box = getVisibleBounds(modelRef.current, nervesModelRef?.current);
+    const center = new THREE.Vector3();
+    const size = new THREE.Vector3();
+    if (!box.isEmpty()) {
+      box.getCenter(center);
+      box.getSize(size);
+    }
+    const fitDist = computeFrameDistance(box, camera, 1.34);
 
     switch (viewPreset) {
       case "front":
-        controls.object.position.set(0, 0, 7.5);
-        targetPos.current.set(0, 0, 0);
+        targetPos.current.copy(center);
+        cameraPos.current = new THREE.Vector3(center.x, center.y, center.z + fitDist);
         isTransitioning.current = true;
         break;
-      case "upper":
-        controls.object.position.set(0, 6.5, 2.5);
-        targetPos.current.set(0, 0.8, 0);
+      case "upper": // Superior / Maxillary occlusal view
+        targetPos.current.set(center.x, center.y + size.y * 0.1, center.z);
+        cameraPos.current = new THREE.Vector3(
+          center.x,
+          center.y + fitDist * 0.95,
+          center.z + fitDist * 0.25
+        );
         isTransitioning.current = true;
         break;
-      case "lower":
-        controls.object.position.set(0, -6.5, 2.5);
-        targetPos.current.set(0, -0.8, 0);
+      case "lower": // Inferior / Mandibular occlusal view
+        targetPos.current.set(center.x, center.y - size.y * 0.1, center.z);
+        cameraPos.current = new THREE.Vector3(
+          center.x,
+          center.y - fitDist * 0.95,
+          center.z + fitDist * 0.25
+        );
         isTransitioning.current = true;
         break;
-      case "right":
-        controls.object.position.set(7.5, 0, 1.5);
-        targetPos.current.set(0, 0, 0);
+      case "right": // Right lateral view
+        targetPos.current.copy(center);
+        cameraPos.current = new THREE.Vector3(
+          center.x + fitDist,
+          center.y,
+          center.z + fitDist * 0.15
+        );
         isTransitioning.current = true;
         break;
-      case "left":
-        controls.object.position.set(-7.5, 0, 1.5);
-        targetPos.current.set(0, 0, 0);
+      case "left": // Left lateral view
+        targetPos.current.copy(center);
+        cameraPos.current = new THREE.Vector3(
+          center.x - fitDist,
+          center.y,
+          center.z + fitDist * 0.15
+        );
         isTransitioning.current = true;
         break;
       case "reset":
-        controls.object.position.set(0, 0, 7.5);
-        targetPos.current.set(0, 0, 0);
-        controls.reset();
+        targetPos.current.copy(center);
+        cameraPos.current = new THREE.Vector3(center.x, center.y, center.z + fitDist);
         isTransitioning.current = true;
         break;
       default:
         break;
     }
-  }, [viewPreset, controlsRef]);
+  }, [viewPreset, presetTick, controlsRef, camera]);
 
-  // Frame lerp loop — exits immediately when not in transition to avoid per-frame cost
-  useFrame(() => {
-    if (!isTransitioning.current) return;  // ← early exit: zero work when idle
-    const controls = controlsRef.current;
-    if (!controls) return;
+  // Handle switching anatomical models or arch filters (e.g. Mandibular vs Maxillary vs All)
+  useEffect(() => {
+    if (!hasInitializedRef.current || !controlsRef.current || !modelRef.current) return;
+    if (prevArchFilterRef.current === archFilter) return;
+    prevArchFilterRef.current = archFilter;
 
-    controls.target.lerp(targetPos.current, 0.12);
-    controls.update();
-    if (controls.target.distanceTo(targetPos.current) < 0.004) {
-      controls.target.copy(targetPos.current);
-      isTransitioning.current = false;
-    }
-  });
+    const timer = setTimeout(() => {
+      if (!modelRef.current || !controlsRef.current) return;
+      const box = getVisibleBounds(modelRef.current, nervesModelRef?.current);
+      if (!box.isEmpty()) {
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        const fitDist = computeFrameDistance(box, camera, 1.34);
+
+        targetPos.current.copy(center);
+        cameraPos.current = new THREE.Vector3(center.x, center.y, center.z + fitDist);
+        isTransitioning.current = true;
+      }
+    }, 60);
+
+    return () => clearTimeout(timer);
+  }, [archFilter, camera]);
 
   return null;
 }
@@ -553,12 +725,233 @@ export default function DentalViewer() {
   const [highlightedNerveTeeth, setHighlightedNerveTeeth] = useState([]);
 
   const [viewPreset, setViewPreset] = useState("front");
+  const [presetTick, setPresetTick] = useState(0);
+  const handleSelectPreset = useCallback((preset) => {
+    setViewPreset(preset);
+    setPresetTick((t) => t + 1);
+  }, []);
+
   const [canvasBgColor, setCanvasBgColor] = useState("#0B1117");
   const [focusSignal, setFocusSignal] = useState(0);
   const [inspectingToothId, setInspectingToothId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isOdontogramCollapsed, setIsOdontogramCollapsed] = useState(false);
   const [isInspectorCollapsed, setIsInspectorCollapsed] = useState(false);
+  const [isInspectorFloating, setIsInspectorFloating] = useState(false);
+  const [isInspectorExpanded, setIsInspectorExpanded] = useState(false);
+  const [inspectorPos, setInspectorPos] = useState({ x: 0, y: 0 });
+  const [isInspectorDragging, setIsInspectorDragging] = useState(false);
+  const [inspectorWidth, setInspectorWidth] = useState(360); // px – docked sidebar width
+  const isResizingInspectorRef = useRef(false);
+  const [isResizingInspector, setIsResizingInspector] = useState(false);
+  const inspectorPanelRef = useRef(null);
+  const dragStartRef = useRef({ startX: 0, startY: 0, posX: 0, posY: 0 });
+  const workspaceRef = useRef(null);
+  const resizeStartRef = useRef({ startX: 0, startWidth: 360 });
+
+  // Initialize inspector floating coordinates on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setInspectorPos({
+        x: Math.max(20, window.innerWidth - 440),
+        y: 60,
+      });
+    }
+  }, []);
+
+  // Handle pointer down on inspector header to allow dragging across viewport
+  const handleInspectorPointerDown = useCallback(
+    (e) => {
+      // Ignore interactive clicks on buttons, inputs, links
+      if (e.target.closest("button, input, select, a, textarea")) return;
+
+      let initialX = inspectorPos.x;
+      let initialY = inspectorPos.y;
+
+      // If currently docked, transition to floating seamlessly at current rect
+      if (!isInspectorFloating && inspectorPanelRef.current) {
+        const rect = inspectorPanelRef.current.getBoundingClientRect();
+        initialX = rect.left;
+        initialY = rect.top;
+        setInspectorPos({ x: initialX, y: initialY });
+        setIsInspectorFloating(true);
+      } else if (inspectorPos.x === 0 && inspectorPos.y === 0) {
+        initialX = Math.max(20, window.innerWidth - 440);
+        initialY = 60;
+        setInspectorPos({ x: initialX, y: initialY });
+      }
+
+      dragStartRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        posX: initialX,
+        posY: initialY,
+      };
+
+      setIsInspectorDragging(true);
+
+      const onPointerMove = (moveEvt) => {
+        const dx = moveEvt.clientX - dragStartRef.current.startX;
+        const dy = moveEvt.clientY - dragStartRef.current.startY;
+        const panelWidth = inspectorPanelRef.current?.offsetWidth || 380;
+
+        const maxX = Math.max(10, window.innerWidth - panelWidth - 10);
+        const maxY = Math.max(50, window.innerHeight - 80);
+
+        const nextX = Math.min(Math.max(10, dragStartRef.current.posX + dx), maxX);
+        const nextY = Math.min(Math.max(50, dragStartRef.current.posY + dy), maxY);
+
+        setInspectorPos({ x: nextX, y: nextY });
+      };
+
+      const onPointerUp = () => {
+        setIsInspectorDragging(false);
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerup", onPointerUp);
+      };
+
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("pointerup", onPointerUp);
+    },
+    [isInspectorFloating, inspectorPos]
+  );
+
+  // Toggle docked / floating window mode
+  const handleToggleInspectorFloating = useCallback(() => {
+    if (!isInspectorFloating) {
+      if (inspectorPanelRef.current) {
+        const rect = inspectorPanelRef.current.getBoundingClientRect();
+        setInspectorPos({
+          x: Math.max(20, Math.min(rect.left, window.innerWidth - 440)),
+          y: Math.max(56, rect.top),
+        });
+      } else {
+        setInspectorPos({
+          x: Math.max(20, window.innerWidth - 440),
+          y: 60,
+        });
+      }
+      setIsInspectorExpanded(false);
+      setIsInspectorFloating(true);
+    } else {
+      setIsInspectorFloating(false);
+      setIsInspectorExpanded(false);
+    }
+  }, [isInspectorFloating]);
+
+  // Toggle full-width expand mode (covers viewport toward left edge)
+  const handleToggleInspectorExpanded = useCallback(() => {
+    if (!isInspectorExpanded) {
+      // Switch to floating if not already so we can position it freely
+      if (!isInspectorFloating) {
+        setIsInspectorFloating(true);
+      }
+      // Snap to top-left with full screen size
+      setInspectorPos({ x: 10, y: 56 });
+      setIsInspectorExpanded(true);
+    } else {
+      setIsInspectorExpanded(false);
+      // Return to default right-docked floating position
+      setInspectorPos({
+        x: Math.max(20, window.innerWidth - 460),
+        y: 60,
+      });
+    }
+  }, [isInspectorExpanded, isInspectorFloating]);
+
+  // ─── Docked Sidebar Resize Divider ───────────────────────────────────────
+  // Only active when inspector is NOT floating (docked mode).
+  const MIN_INSPECTOR_W = 280;
+  const MAX_INSPECTOR_W = 650;
+
+  const handleResizePointerDown = useCallback(
+    (e) => {
+      // Resizing must happen ONLY when user holds the primary (left) mouse button and docked
+      if (e.button !== 0 || isInspectorFloating) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const dividerEl = e.currentTarget;
+      const pointerId = e.pointerId;
+
+      isResizingInspectorRef.current = true;
+      setIsResizingInspector(true);
+
+      resizeStartRef.current = {
+        startX: e.clientX,
+        startWidth: inspectorWidth,
+      };
+
+      if (dividerEl && typeof dividerEl.setPointerCapture === "function") {
+        try {
+          dividerEl.setPointerCapture(pointerId);
+        } catch (err) {}
+      }
+
+      // Prevent accidental text selection during a drag, but only while resizing
+      const prevUserSelect = document.body.style.userSelect;
+      const prevCursor = document.body.style.cursor;
+      document.body.style.userSelect = "none";
+      document.body.style.cursor = "col-resize";
+
+      const stopResizing = () => {
+        if (!isResizingInspectorRef.current) return;
+        isResizingInspectorRef.current = false;
+        setIsResizingInspector(false);
+
+        document.body.style.userSelect = prevUserSelect;
+        document.body.style.cursor = prevCursor;
+
+        if (dividerEl && typeof dividerEl.releasePointerCapture === "function") {
+          try {
+            if (dividerEl.hasPointerCapture?.(pointerId)) {
+              dividerEl.releasePointerCapture(pointerId);
+            }
+          } catch (err) {}
+        }
+
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerup", stopResizing);
+        window.removeEventListener("pointercancel", stopResizing);
+        if (dividerEl) {
+          dividerEl.removeEventListener("lostpointercapture", stopResizing);
+          dividerEl.removeEventListener("pointerup", stopResizing);
+        }
+      };
+
+      const onPointerMove = (moveEvt) => {
+        if (!isResizingInspectorRef.current) {
+          stopResizing();
+          return;
+        }
+
+        // Resizing must happen ONLY while primary mouse button is actively held down
+        if ((moveEvt.buttons & 1) !== 1) {
+          stopResizing();
+          return;
+        }
+
+        // Dragging LEFT → inspector grows; dragging RIGHT → inspector shrinks
+        const delta = resizeStartRef.current.startX - moveEvt.clientX;
+        const next = Math.min(
+          MAX_INSPECTOR_W,
+          Math.max(MIN_INSPECTOR_W, Math.round(resizeStartRef.current.startWidth + delta))
+        );
+        setInspectorWidth(next);
+      };
+
+      window.addEventListener("pointermove", onPointerMove, { passive: true });
+      window.addEventListener("pointerup", stopResizing);
+      window.addEventListener("pointercancel", stopResizing);
+      if (dividerEl) {
+        dividerEl.addEventListener("lostpointercapture", stopResizing);
+        dividerEl.addEventListener("pointerup", stopResizing);
+      }
+    },
+    [isInspectorFloating, inspectorWidth]
+  );
+  // ─────────────────────────────────────────────────────────────────────────
 
   const controlsRef = useRef();
   const modelRef = useRef();
@@ -768,7 +1161,7 @@ export default function DentalViewer() {
             <button
               type="button"
               className={`segmented-btn ${viewPreset === "front" ? "active" : ""}`}
-              onClick={() => setViewPreset("front")}
+              onClick={() => handleSelectPreset("front")}
               title="Anterior / Frontal View"
             >
               Front
@@ -776,7 +1169,7 @@ export default function DentalViewer() {
             <button
               type="button"
               className={`segmented-btn ${viewPreset === "upper" ? "active" : ""}`}
-              onClick={() => setViewPreset("upper")}
+              onClick={() => handleSelectPreset("upper")}
               title="Maxillary / Superior Occlusal View"
             >
               Superior
@@ -784,7 +1177,7 @@ export default function DentalViewer() {
             <button
               type="button"
               className={`segmented-btn ${viewPreset === "lower" ? "active" : ""}`}
-              onClick={() => setViewPreset("lower")}
+              onClick={() => handleSelectPreset("lower")}
               title="Mandibular / Inferior Occlusal View"
             >
               Inferior
@@ -792,7 +1185,7 @@ export default function DentalViewer() {
             <button
               type="button"
               className={`segmented-btn ${viewPreset === "right" ? "active" : ""}`}
-              onClick={() => setViewPreset("right")}
+              onClick={() => handleSelectPreset("right")}
               title="Right Lateral View"
             >
               Right
@@ -800,7 +1193,7 @@ export default function DentalViewer() {
             <button
               type="button"
               className={`segmented-btn ${viewPreset === "left" ? "active" : ""}`}
-              onClick={() => setViewPreset("left")}
+              onClick={() => handleSelectPreset("left")}
               title="Left Lateral View"
             >
               Left
@@ -811,7 +1204,7 @@ export default function DentalViewer() {
             type="button"
             className="clinical-tool-btn"
             onClick={() => {
-              setViewPreset("reset");
+              handleSelectPreset("reset");
               setSelectedTooth(null);
               setSelectedNerve(null);
               setHighlightedNerveTeeth([]);
@@ -848,7 +1241,11 @@ export default function DentalViewer() {
       </header>
 
       {/* 2. Main Workspace: Viewport Column (3D + Odontogram) + Docked Right Inspector */}
-      <div className="clinical-workspace">
+      <div
+        ref={workspaceRef}
+        className="clinical-workspace"
+        style={{ userSelect: isResizingInspector ? "none" : undefined }}
+      >
         {/* Viewport Column */}
         <div className="clinical-viewport-col">
           {/* Central 3D Viewport Area */}
@@ -1317,13 +1714,10 @@ export default function DentalViewer() {
 
             {/* Three.js Canvas — powerPreference for GPU, capped dpr, no superfluous re-renders */}
             <Canvas
-              camera={{ position: [0, 0, 7.5], fov: 40, near: 0.01, far: 1000 }}
+              camera={{ position: [0, 0, 14], fov: 38, near: 0.01, far: 1000 }}
               dpr={[1, 1.5]}
               gl={{ antialias: true, powerPreference: "high-performance", stencil: false, depth: true }}
               style={{ background: canvasBgColor }}
-              onPointerDown={() => { isOrbitingRef.current = true; setIsOrbiting(true); }}
-              onPointerUp={() => { isOrbitingRef.current = false; setIsOrbiting(false); }}
-              onPointerLeave={() => { isOrbitingRef.current = false; setIsOrbiting(false); }}
             >
               <SceneBackground color={canvasBgColor} />
               <color attach="background" args={[canvasBgColor]} key={canvasBgColor} />
@@ -1367,6 +1761,7 @@ export default function DentalViewer() {
                     onSelectArch={handleSelectArch}
                     onHoverArch={setHoveredArch}
                     modelRef={modelRef}
+                    isOrbitingRef={isOrbitingRef}
                   />
 
                    {/* Dedicated 3D Dental Nerve Anatomy Layer */}
@@ -1375,13 +1770,14 @@ export default function DentalViewer() {
                     hoveredNerve={hoveredNerve}
                     nervesVisibility={nervesVisibility}
                     canalVisibility={canalVisibility}
-                    labelsVisible={labelsVisible && !isOrbiting}
+                    labelsVisible={labelsVisible}
                     isIsolated={isIsolated && Boolean(selectedNerve)}
                     activeDivision={activeNerveDivision}
                     archFilter={archFilter}
                     onSelectNerve={handleSelectNerve}
                     onHoverNerve={setHoveredNerve}
                     nervesModelRef={nervesModelRef}
+                    isOrbitingRef={isOrbitingRef}
                   />
                 </Center>
               </Suspense>
@@ -1394,22 +1790,27 @@ export default function DentalViewer() {
                 nervesModelRef={nervesModelRef}
                 focusSignal={focusSignal}
                 viewPreset={viewPreset}
+                presetTick={presetTick}
+                archFilter={archFilter}
+                isOrbitingRef={isOrbitingRef}
               />
 
               <OrbitControls
                 ref={controlsRef}
                 makeDefault
                 enableDamping
-                dampingFactor={0.08}
+                dampingFactor={0.16}
+                rotateSpeed={1.0}
                 minDistance={0.5}
-                maxDistance={60}
+                maxDistance={80}
                 onStart={() => {
                   isOrbitingRef.current = true;
-                  setIsOrbiting(true);
+                  setHoveredTooth(null);
+                  setHoveredNerve(null);
+                  setHoveredArch(null);
                 }}
                 onEnd={() => {
                   isOrbitingRef.current = false;
-                  setIsOrbiting(false);
                 }}
               />
             </Canvas>
@@ -1468,34 +1869,96 @@ export default function DentalViewer() {
           </div>
         </div>
 
-        {/* 4. Collapsible Right Inspector (Docked Panel) */}
+        {/* 4. Resize Divider + Draggable & Collapsible Anatomical Inspector Panel */}
+        {!isInspectorCollapsed && !isInspectorFloating && (
+          <div
+            className={`inspector-resize-divider ${isResizingInspector ? "active" : ""}`}
+            onPointerDown={handleResizePointerDown}
+            title="Drag left/right to resize inspector"
+            aria-label="Resize inspector"
+            role="separator"
+          />
+        )}
         {!isInspectorCollapsed && (
-          <aside className="clinical-inspector-dock">
-            <div className="inspector-dock-header">
-              <div className="dock-header-title">
-                {selectedNerve ? (
-                  <Zap size={14} style={{ color: "#FACC15" }} />
-                ) : (
-                  <Activity size={14} />
+          <aside
+            ref={inspectorPanelRef}
+            className={`clinical-inspector-dock ${isInspectorFloating ? "floating" : "docked"} ${
+              isInspectorDragging ? "dragging" : ""
+            } ${isInspectorExpanded ? "expanded" : ""}`}
+            style={
+              isInspectorFloating
+                ? {
+                    left: `${inspectorPos.x}px`,
+                    top: `${inspectorPos.y}px`,
+                    ...(isInspectorExpanded
+                      ? {
+                          width: `calc(100vw - 20px)`,
+                          height: `calc(100vh - 66px)`,
+                          top: "56px",
+                          left: "10px",
+                        }
+                      : {}),
+                  }
+                : { width: `${inspectorWidth}px` }
+            }
+          >
+            <div
+              className="inspector-dock-header"
+              onPointerDown={handleInspectorPointerDown}
+              onDoubleClick={handleToggleInspectorFloating}
+              title="Click and drag to move anywhere • Double-click to dock/undock"
+            >
+              <div className="dock-header-drag-zone">
+                <GripHorizontal size={14} className="dock-drag-icon" />
+                <div className="dock-header-title">
+                  {selectedNerve ? (
+                    <Zap size={14} style={{ color: "#FACC15" }} />
+                  ) : (
+                    <Activity size={14} />
+                  )}
+                  <span>
+                    {selectedNerve
+                      ? "NEUROVASCULAR INSPECTOR"
+                      : selectedTooth
+                      ? "TOOTH HISTOLOGY INSPECTOR"
+                      : selectedArch
+                      ? "ARCH ANATOMY INSPECTOR"
+                      : "ANATOMICAL INSPECTOR"}
+                  </span>
+                </div>
+                {isInspectorFloating && (
+                  <span className="floating-mode-pill">{isInspectorExpanded ? "Full-Screen" : "Draggable"}</span>
                 )}
-                <span>
-                  {selectedNerve
-                    ? "NEUROVASCULAR INSPECTOR"
-                    : selectedTooth
-                    ? "TOOTH HISTOLOGY INSPECTOR"
-                    : selectedArch
-                    ? "ARCH ANATOMY INSPECTOR"
-                    : "ANATOMICAL INSPECTOR"}
-                </span>
               </div>
-              <button
-                type="button"
-                className="dock-close-btn"
-                onClick={() => setIsInspectorCollapsed(true)}
-                title="Collapse Inspector"
-              >
-                <PanelRightClose size={14} />
-              </button>
+
+              <div className="dock-header-actions">
+                {/* Expand / Shrink */}
+                <button
+                  type="button"
+                  className={`dock-tool-btn ${isInspectorExpanded ? "active-accent" : ""}`}
+                  onClick={handleToggleInspectorExpanded}
+                  title={isInspectorExpanded ? "Shrink Inspector to Default Size" : "Expand Inspector Full-Screen (Left)"}
+                >
+                  {isInspectorExpanded ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                </button>
+                {/* Dock / Float */}
+                <button
+                  type="button"
+                  className="dock-tool-btn"
+                  onClick={handleToggleInspectorFloating}
+                  title={isInspectorFloating ? "Dock to Right Sidebar" : "Float / Undock Inspector Window"}
+                >
+                  {isInspectorFloating ? <Pin size={13} /> : <PinOff size={13} />}
+                </button>
+                <button
+                  type="button"
+                  className="dock-close-btn"
+                  onClick={() => setIsInspectorCollapsed(true)}
+                  title="Collapse Inspector"
+                >
+                  <PanelRightClose size={14} />
+                </button>
+              </div>
             </div>
 
             <div className="inspector-dock-scroll">
@@ -1543,7 +2006,7 @@ export default function DentalViewer() {
                     setArchFilter(archFilter === arch ? "all" : arch);
                   }}
                   onDeselect={() => setSelectedArch(null)}
-                  onSelectPreset={(preset) => setViewPreset(preset)}
+                  onSelectPreset={(preset) => handleSelectPreset(preset)}
                 />
               ) : (
                 <NerveDetailCard

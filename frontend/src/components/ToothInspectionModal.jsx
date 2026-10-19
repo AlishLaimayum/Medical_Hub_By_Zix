@@ -1,8 +1,8 @@
-import React, { useMemo, useState, Suspense } from "react";
+import React, { useMemo, useState, Suspense, useRef, useCallback } from "react";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Center, Bounds, Html } from "@react-three/drei";
-import { X, Layers, Info, Pipette } from "lucide-react";
+import { X, Layers, Info, Pipette, GripHorizontal } from "lucide-react";
 import { TEETH_DATA } from "../data/teethData";
 import { BG_PRESETS } from "./DentalViewer";
 
@@ -118,6 +118,39 @@ export default function ToothInspectionModal({ toothId, onClose, initialBgColor 
   const [pdlVisible, setPdlVisible] = useState(false);
   const [pulpHighlighted, setPulpHighlighted] = useState(true);
 
+  const [modalPos, setModalPos] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef({ startX: 0, startY: 0, posX: 0, posY: 0 });
+
+  const handlePointerDown = useCallback((e) => {
+    if (e.target.closest("button, input, select, a")) return;
+    dragStartRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      posX: modalPos.x,
+      posY: modalPos.y,
+    };
+    setIsDragging(true);
+
+    const onPointerMove = (moveEvt) => {
+      const dx = moveEvt.clientX - dragStartRef.current.startX;
+      const dy = moveEvt.clientY - dragStartRef.current.startY;
+      setModalPos({
+        x: dragStartRef.current.posX + dx,
+        y: dragStartRef.current.posY + dy,
+      });
+    };
+
+    const onPointerUp = () => {
+      setIsDragging(false);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+  }, [modalPos]);
+
   const data = TEETH_DATA[toothId];
   if (!data) return null;
 
@@ -125,10 +158,23 @@ export default function ToothInspectionModal({ toothId, onClose, initialBgColor 
 
   return (
     <div className="clinical-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="clinical-modal-window" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="clinical-modal-window"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          transform: `translate(${modalPos.x}px, ${modalPos.y}px)`,
+          transition: isDragging ? "none" : "transform 0.05s ease-out",
+        }}
+      >
         {/* Modal Header */}
-        <div className="clinical-modal-header">
+        <div
+          className="clinical-modal-header"
+          onPointerDown={handlePointerDown}
+          style={{ cursor: isDragging ? "grabbing" : "grab", userSelect: "none" }}
+          title="Click and drag header to reposition window"
+        >
           <div className="modal-title-lockup">
+            <GripHorizontal size={16} style={{ color: "var(--text-muted)", cursor: "grab", marginRight: 2 }} />
             <span className="modal-fdi-tag">FDI {data.fdi}</span>
             <div className="modal-heading-text">
               <h3 className="modal-title">{data.name}</h3>

@@ -133,6 +133,7 @@ function ProceduralNerveTube({
   anyNerveSelected,
   onSelect,
   onHover,
+  isOrbitingRef,
 }) {
   const geometry = useMemo(() => {
     const curve = new THREE.CatmullRomCurve3(branch.curve);
@@ -204,10 +205,12 @@ function ProceduralNerveTube({
         onSelect(branch.nerveId);
       }}
       onPointerOver={(e) => {
+        if (isOrbitingRef?.current) return;
         e.stopPropagation();
         onHover(branch.nerveId);
       }}
       onPointerOut={(e) => {
+        if (isOrbitingRef?.current) return;
         e.stopPropagation();
         onHover(null);
       }}
@@ -230,6 +233,7 @@ export default function InteractiveNervesModel({
   onSelectNerve,
   onHoverNerve,
   nervesModelRef,
+  isOrbitingRef,
 }) {
   const { scene } = useGLTF(
     "/models/dental/nerves/dental_neurovascular_complete.glb"
@@ -504,6 +508,7 @@ export default function InteractiveNervesModel({
           }
         }}
         onPointerOver={(e) => {
+          if (isOrbitingRef?.current) return;
           e.stopPropagation();
           const meshName = e.object.name.toLowerCase();
           const mappedId = GLB_NODE_TO_NERVE_ID[meshName];
@@ -513,6 +518,7 @@ export default function InteractiveNervesModel({
           }
         }}
         onPointerOut={(e) => {
+          if (isOrbitingRef?.current) return;
           e.stopPropagation();
           onHoverNerve(null);
           document.body.style.cursor = "default";
@@ -554,41 +560,49 @@ export default function InteractiveNervesModel({
             anyNerveSelected={Boolean(selectedNerve)}
             onSelect={onSelectNerve}
             onHover={onHoverNerve}
+            isOrbitingRef={isOrbitingRef}
           />
         );
       })}
 
       {/* 3D Anatomical Callout Labels — compact chips, expand on hover */}
-      {activeLabels.map((nerve) => {
-        const isSelected = selectedNerve === nerve.id;
-        const isHovered = hoveredNerve === nerve.id;
+      {labelsVisible &&
+        activeLabels.map((nerve) => {
+          const isSelected = selectedNerve === nerve.id;
+          const isHovered = hoveredNerve === nerve.id;
 
-        return (
-          <Html
-            key={nerve.id}
-            position={nerve.labelPosition}
-            center
-            distanceFactor={14}
-            zIndexRange={[20, 0]}
-            style={{ pointerEvents: "auto" }}
-          >
-            <div
-              className={`nerve-3d-pin ${isSelected ? "selected" : ""} ${isHovered ? "hovered" : ""}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelectNerve(nerve.id);
-              }}
-              onMouseEnter={() => onHoverNerve(nerve.id)}
-              onMouseLeave={() => onHoverNerve(null)}
-              title={nerve.name}
+          return (
+            <Html
+              key={nerve.id}
+              position={nerve.labelPosition}
+              center
+              distanceFactor={14}
+              zIndexRange={[20, 0]}
+              style={{ pointerEvents: "auto" }}
             >
-              <span className="pin-dot" />
-              <span className="pin-abbr">{nerve.abbreviation}</span>
-              <span className="pin-name">{nerve.name}</span>
-            </div>
-          </Html>
-        );
-      })}
+              <div
+                className={`nerve-3d-pin ${isSelected ? "selected" : ""} ${isHovered ? "hovered" : ""}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectNerve(nerve.id);
+                }}
+                onMouseEnter={() => {
+                  if (isOrbitingRef?.current) return;
+                  onHoverNerve(nerve.id);
+                }}
+                onMouseLeave={() => {
+                  if (isOrbitingRef?.current) return;
+                  onHoverNerve(null);
+                }}
+                title={nerve.name}
+              >
+                <span className="pin-dot" />
+                <span className="pin-abbr">{nerve.abbreviation}</span>
+                <span className="pin-name">{nerve.name}</span>
+              </div>
+            </Html>
+          );
+        })}
     </group>
   );
 }
