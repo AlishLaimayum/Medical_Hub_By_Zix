@@ -1,0 +1,2489 @@
+/* ==========================================================================
+   Dental Anatomy Explorer — Professional Clinical 3D Workstation Design
+   ========================================================================== */
+
+:root {
+  --app-bg: #000000;
+  --surface: #000000;
+  --surface-raised: #000000;
+  --surface-hover: #000000;
+  --surface-active: #000000;
+
+  --border: #293543;
+  --border-subtle: #1C2735;
+  --border-focus: #ffffff;
+
+  --text-primary: #E7EDF4;
+  --text-secondary: #93A2B5;
+  --text-muted: #5E7287;
+
+  --accent: #7dd3ce;
+  --accent-hover: #48BBE7;
+  --accent-subtle: rgba(53, 169, 214, 0.12);
+  --accent-border: rgba(53, 169, 214, 0.35);
+
+  --danger: #D9534F;
+  --warning: #D99B26;
+
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Consolas, Menlo, monospace;
+
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  --topbar-height: 48px;
+  --inspector-width: 320px;
+}
+
+/* Base resets & layout */
+.app-container {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--app-bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  overflow: hidden;
+}
+
+.clinical-app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--app-bg);
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   1. Compact Top Toolbar
+   ========================================================================== */
+.clinical-topbar {
+  height: var(--topbar-height);
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  gap: 16px;
+  flex-shrink: 0;
+  z-index: 30;
+}
+
+.topbar-branding {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 240px;
+}
+
+.branding-icon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.branding-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.branding-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+}
+
+.branding-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Search Input */
+.topbar-search-wrapper {
+  position: relative;
+  width: 300px;
+}
+
+.clinical-search-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-symbol {
+  position: absolute;
+  left: 10px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.clinical-search-input input {
+  width: 100%;
+  height: 30px;
+  padding: 0 10px 0 32px;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.clinical-search-input input:focus {
+  border-color: var(--accent);
+}
+
+.clinical-search-input input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-results-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.search-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.search-item:last-child {
+  border-bottom: none;
+}
+
+.search-item:hover {
+  background-color: var(--surface-hover);
+}
+
+.search-fdi {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  background-color: var(--accent-subtle);
+  padding: 2px 5px;
+  border-radius: var(--radius-xs);
+  flex-shrink: 0;
+}
+
+.search-names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.search-primary {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-secondary {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Tools & Orientation */
+.topbar-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.orientation-segmented-group {
+  display: flex;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.segmented-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  padding: 4px 9px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.segmented-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--surface-hover);
+}
+
+.segmented-btn.active {
+  background-color: var(--accent);
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+.clinical-tool-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.clinical-tool-btn:hover {
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
+  border-color: var(--border-focus);
+}
+
+.clinical-tool-btn.active {
+  background-color: var(--surface-active);
+  color: var(--accent);
+  border-color: var(--border-focus);
+}
+
+/* ==========================================================================
+   2. Main Workspace (Viewport Column + Docked Right Inspector)
+   ========================================================================== */
+.clinical-workspace {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.clinical-viewport-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+}
+
+/* Central 3D Viewport Area */
+.clinical-viewport-container {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  width: 100%;
+  background-color: var(--app-bg);
+}
+
+/* Viewport Top HUD Stack — Non-overlapping vertical flow for controls & strips */
+.viewport-hud-stack {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  max-width: calc(100% - 24px);
+  z-index: 15;
+  pointer-events: none;
+}
+
+.viewport-hud-stack > * {
+  pointer-events: auto;
+}
+
+/* Minimal Top Viewport HUD */
+.viewport-hud-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.hud-layer-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: rgba(17, 25, 35, 0.92);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+}
+
+.hud-group-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.hud-segmented {
+  display: flex;
+  background-color: var(--surface-raised);
+  border-radius: var(--radius-xs);
+  padding: 1px;
+  gap: 1px;
+}
+
+.hud-segmented button {
+  background: transparent;
+  border: none;
+  font-size: 10px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-secondary);
+  padding: 3px 7px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.hud-segmented button:hover {
+  color: var(--text-primary);
+}
+
+.hud-segmented button.active {
+  background-color: var(--surface-active);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Background Color Control in HUD */
+.hud-bg-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-bg-presets {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hud-color-swatch-btn {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  outline: none;
+  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.hud-color-swatch-btn:hover {
+  transform: scale(1.22);
+  border-color: #FFFFFF;
+}
+
+.hud-color-swatch-btn.active {
+  transform: scale(1.25);
+  border-color: #FFFFFF;
+  box-shadow: 0 0 0 2px var(--accent), 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.hud-custom-color-picker {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 2px 5px;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.hud-custom-color-picker:hover {
+  border-color: var(--border-focus);
+  background-color: var(--surface-hover);
+}
+
+.hud-color-hidden-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.hud-color-picker-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.hud-color-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.hud-color-hex {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.3px;
+}
+
+.hud-isolate-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: rgba(217, 155, 38, 0.15);
+  border: 1px solid rgba(217, 155, 38, 0.4);
+  color: var(--warning);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.hud-isolate-exit-btn {
+  background: transparent;
+  border: 1px solid var(--warning);
+  color: var(--warning);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  margin-left: 4px;
+}
+
+.hud-isolate-exit-btn:hover {
+  background-color: var(--warning);
+  color: #000000;
+}
+
+/* Hover Badge in Viewport */
+.viewport-hover-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(17, 25, 35, 0.9);
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.viewport-hover-badge .badge-fdi {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.viewport-hover-badge .badge-name {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Viewport Bottom Info Hint */
+.viewport-hud-bottom {
+  position: absolute;
+  bottom: 8px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--text-muted);
+  background-color: rgba(11, 17, 23, 0.7);
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-subtle);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.hud-sep {
+  opacity: 0.5;
+}
+
+/* ==========================================================================
+   3. Collapsible Bottom Odontogram Panel (Docked)
+   ========================================================================== */
+.clinical-odontogram-dock {
+  background-color: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  z-index: 20;
+}
+
+.clinical-odontogram-dock.collapsed {
+  height: 28px;
+}
+
+.odontogram-dock-bar {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background-color: var(--surface-raised);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.dock-bar-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dock-title-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.dock-title-meta {
+  font-size: 9px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.dock-collapse-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+}
+
+.dock-collapse-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--surface-hover);
+}
+
+/* Odontogram Grid */
+.odontogram-dock-content {
+  padding: 8px 16px 10px 16px;
+  overflow: hidden;
+}
+
+.clinical-odontogram {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.odontogram-scroll-wrapper {
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.odontogram-arch-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 680px;
+}
+
+.odontogram-arch-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.arch-orientation-label {
+  width: 120px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.arch-teeth-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.quadrant-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quadrant-tag {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  width: 74px;
+  text-align: center;
+}
+
+.teeth-series {
+  display: flex;
+  gap: 2px;
+}
+
+.clinical-midline {
+  width: 2px;
+  height: 24px;
+  background-color: var(--border);
+  margin: 0 4px;
+}
+
+/* Individual Odontogram Tooth Button */
+.clinical-tooth-btn {
+  width: 28px;
+  height: 30px;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  padding: 0;
+}
+
+.clinical-tooth-btn:hover {
+  background-color: var(--surface-hover);
+  border-color: var(--border-focus);
+}
+
+.clinical-tooth-btn.selected {
+  background-color: var(--accent);
+  border-color: var(--accent-hover);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.clinical-tooth-btn.selected .clinical-fdi-label,
+.clinical-tooth-btn.selected .clinical-abbr-label {
+  color: #FFFFFF;
+}
+
+.clinical-tooth-btn.hovered:not(.selected) {
+  border-color: var(--accent);
+}
+
+.clinical-fdi-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.clinical-abbr-label {
+  font-size: 8px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-top: 1px;
+  line-height: 1;
+}
+
+/* ==========================================================================
+   4. Collapsible Right Inspector Panel (Docked)
+   ========================================================================== */
+.clinical-inspector-dock {
+  width: var(--inspector-width);
+  background-color: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  z-index: 25;
+  overflow: hidden;
+}
+
+.inspector-dock-header {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  background-color: var(--surface-raised);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.dock-header-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.dock-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.dock-close-btn:hover {
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.inspector-dock-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Empty State */
+.inspector-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px 8px;
+  gap: 12px;
+}
+
+.empty-state-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.empty-state-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.empty-state-desc {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.empty-overview-box {
+  width: 100%;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  text-align: left;
+}
+
+.overview-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+}
+
+.overview-key {
+  color: var(--text-muted);
+}
+
+.overview-val {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Selected Tooth Details */
+.inspector-panel-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.inspector-entity-card {
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.entity-identifiers {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.fdi-code-badge {
+  display: flex;
+  align-items: center;
+  background-color: var(--accent-subtle);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-xs);
+  padding: 2px 6px;
+  gap: 4px;
+}
+
+.fdi-prefix {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.fdi-number {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.entity-tags {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+
+.clinical-univ-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-secondary);
+  background-color: var(--surface);
+  border: 1px solid var(--border-subtle);
+  padding: 2px 5px;
+  border-radius: var(--radius-xs);
+}
+
+.clinical-quad-tag {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.clinical-deselect-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+}
+
+.clinical-deselect-btn:hover {
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.entity-anatomical-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.entity-common-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.entity-common-name {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.entity-class-chip {
+  font-size: 9px;
+  font-weight: 600;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+}
+
+/* Spec Tables */
+.inspector-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.section-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.spec-table {
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.spec-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 11px;
+}
+
+.spec-row:last-child {
+  border-bottom: none;
+}
+
+.spec-row.full {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.spec-param {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.spec-data {
+  color: var(--text-primary);
+  font-weight: 500;
+  text-align: right;
+}
+
+.spec-row.full .spec-data {
+  text-align: left;
+  line-height: 1.4;
+}
+
+/* Morphology Text */
+.morphology-text-card {
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+}
+
+.morphology-text-card p {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* Action Stack */
+.action-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.clinical-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.clinical-action-btn.primary {
+  background-color: var(--accent);
+  border: 1px solid var(--accent);
+  color: #FFFFFF;
+}
+
+.clinical-action-btn.primary:hover {
+  background-color: var(--accent-hover);
+}
+
+.clinical-action-btn.secondary {
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.clinical-action-btn.secondary:hover {
+  background-color: var(--surface-hover);
+  border-color: var(--border-focus);
+}
+
+.clinical-action-btn.active-warning {
+  background-color: rgba(217, 155, 38, 0.15);
+  border: 1px solid var(--warning);
+  color: var(--warning);
+}
+
+/* ==========================================================================
+   5. Histological Inspection Modal (Clinical CAD Window)
+   ========================================================================== */
+.clinical-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(5, 9, 14, 0.85);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.clinical-modal-window {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+  width: 860px;
+  max-width: 95vw;
+  height: 560px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.clinical-modal-header {
+  height: 48px;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--surface-raised);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+
+.modal-title-lockup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-fdi-tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  background-color: var(--accent-subtle);
+  border: 1px solid var(--accent-border);
+  color: var(--accent);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+}
+
+.modal-heading-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.modal-subtitle {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.modal-close-button {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+}
+
+.modal-close-button:hover {
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.clinical-modal-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.modal-viewport-area {
+  flex: 1;
+  position: relative;
+  background-color: #000000;
+}
+
+.modal-viewport-hud {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: rgba(17, 25, 35, 0.92);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+  z-index: 10;
+}
+
+.modal-viewport-hint {
+  position: absolute;
+  bottom: 10px;
+  left: 12px;
+  font-size: 10px;
+  color: var(--text-muted);
+  background-color: rgba(17, 25, 35, 0.8);
+  border: 1px solid var(--border-subtle);
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  pointer-events: none;
+}
+
+.modal-sidebar-area {
+  width: 260px;
+  background-color: var(--surface);
+  border-left: 1px solid var(--border);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.sidebar-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.layer-setting-card {
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.layer-setting-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.setting-color-chip {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.setting-color-chip.enamel { background-color: #FAF7F2; }
+.setting-color-chip.dentin { background-color: #D8B463; }
+.setting-color-chip.pulp { background-color: #DC2626; }
+.setting-color-chip.pdl { background-color: #E084A4; }
+
+.segmented-control {
+  display: flex;
+  background-color: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 1px;
+  gap: 1px;
+}
+
+.segmented-control button {
+  flex: 1;
+  background: transparent;
+  border: none;
+  font-size: 10px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-secondary);
+  padding: 4px 6px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.segmented-control button:hover {
+  color: var(--text-primary);
+}
+
+.segmented-control button.active {
+  background-color: var(--surface-active);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.modal-info-box {
+  margin-top: auto;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-box-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+}
+
+.modal-info-box p {
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   6. Tooth Classification Color Mapping (Canines Red, Molars Purple, etc.)
+   ========================================================================== */
+
+/* Topbar Palette Tool Active State */
+.clinical-tool-btn.active-palette {
+  background-color: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #EF4444;
+  font-weight: 600;
+}
+
+/* Viewport Classification & Division Filter Strip */
+.hud-classification-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  background-color: rgba(17, 25, 35, 0.94);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  animation: fadeIn 0.15s ease-out;
+}
+
+.classification-strip-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  padding: 0 4px;
+}
+
+.type-filter-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.type-filter-chip:hover {
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.type-chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.type-chip-dot.canine { background-color: #EF4444; }
+.type-chip-dot.molar { background-color: #A855F7; }
+.type-chip-dot.incisor { background-color: #0EA5E9; }
+.type-chip-dot.premolar { background-color: #10B981; }
+
+.type-filter-chip.all.active {
+  background-color: var(--surface-active);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.type-filter-chip.canine.active {
+  background-color: rgba(239, 68, 68, 0.2);
+  border-color: #EF4444;
+  color: #EF4444;
+  font-weight: 600;
+}
+
+.type-filter-chip.molar.active {
+  background-color: rgba(168, 85, 247, 0.2);
+  border-color: #A855F7;
+  color: #C084FC;
+  font-weight: 600;
+}
+
+.type-filter-chip.incisor.active {
+  background-color: rgba(14, 165, 233, 0.2);
+  border-color: #0EA5E9;
+  color: #38BDF8;
+  font-weight: 600;
+}
+
+.type-filter-chip.premolar.active {
+  background-color: rgba(16, 185, 129, 0.2);
+  border-color: #10B981;
+  color: #34D399;
+  font-weight: 600;
+}
+
+.type-filter-close {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 500;
+  padding: 3px 6px;
+  cursor: pointer;
+  margin-left: 4px;
+  transition: all 0.1s ease;
+}
+
+.type-filter-close:hover {
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+/* Odontogram Color Mode Indicators */
+.clinical-tooth-btn.color-mode {
+  position: relative;
+  border-bottom: 2px solid var(--tooth-type-color, var(--border));
+}
+
+.clinical-tooth-btn.color-mode.dimmed-type {
+  opacity: 0.2;
+}
+
+.type-dot-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--tooth-type-color);
+}
+
+.dock-color-active-pill {
+  font-size: 9px;
+  font-weight: 600;
+  color: #EF4444;
+  background-color: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  margin-left: 6px;
+}
+
+/* Empty State Shortcuts */
+.empty-type-shortcuts {
+  width: 100%;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.shortcuts-title {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.shortcuts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.shortcut-type-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  padding: 5px 8px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.shortcut-type-btn:hover {
+  background-color: var(--surface-hover);
+  border-color: var(--type-color);
+  color: var(--text-primary);
+}
+
+.shortcut-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--type-color);
+}
+
+.shortcut-count {
+  margin-left: auto;
+  font-size: 9px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* ==========================================================================
+   4. Dental Neuroanatomy Styles (Medical Hub By Zix)
+   ========================================================================== */
+
+/* 3D Anatomical Pin / Billboard Label in Viewport */
+.nerve-3d-pin {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background-color: rgba(11, 17, 23, 0.92);
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  border-radius: 12px;
+  padding: 2px 7px;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 10px rgba(250, 204, 21, 0.2);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.nerve-3d-pin:hover,
+.nerve-3d-pin.hovered {
+  border-color: #FACC15;
+  background-color: rgba(22, 33, 47, 0.98);
+  box-shadow: 0 3px 12px rgba(250, 204, 21, 0.45);
+  transform: translateY(-2px) scale(1.05);
+}
+
+.nerve-3d-pin.selected {
+  border-color: #F59E0B;
+  background-color: rgba(245, 158, 11, 0.2);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.5), 0 4px 14px rgba(0, 0, 0, 0.8);
+  transform: scale(1.08);
+}
+
+.nerve-3d-pin .pin-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #FACC15;
+  box-shadow: 0 0 6px #FACC15;
+  flex-shrink: 0;
+}
+
+.nerve-3d-pin.selected .pin-dot {
+  background-color: #FFE066;
+  box-shadow: 0 0 8px #F59E0B;
+}
+
+.nerve-3d-pin .pin-abbr {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: #FACC15;
+}
+
+.nerve-3d-pin .pin-name {
+  font-size: 10px;
+  font-weight: 500;
+  color: #F1F5F9;
+}
+
+/* Neural Theme in Inspector */
+.inspector-entity-card.neural-theme {
+  border-left: 3px solid #FACC15;
+}
+
+.neural-code-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: rgba(250, 204, 21, 0.15);
+  border: 1px solid rgba(250, 204, 21, 0.4);
+  color: #FACC15;
+  padding: 3px 7px;
+  border-radius: var(--radius-xs);
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.neural-abbr {
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+}
+
+.clinical-div-tag {
+  background-color: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38BDF8;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+}
+
+.entity-procedural-chip {
+  font-size: 10px;
+  font-weight: 500;
+  color: #FBBF24;
+  background-color: rgba(245, 158, 11, 0.12);
+  border: 1px dashed rgba(245, 158, 11, 0.45);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+}
+
+/* Data Source Live vs Local Indicator */
+.data-source-indicator {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+}
+
+.source-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.source-badge.live {
+  color: #10B981;
+}
+
+.source-badge.local {
+  color: #94A3B8;
+}
+
+/* Inspector Sub-Tabs */
+.inspector-subtabs {
+  display: flex;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+
+.subtab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  padding: 5px 6px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+
+.subtab-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--surface-hover);
+}
+
+.subtab-btn.active {
+  background-color: #FACC15;
+  color: #0F172A;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Structures Supplied List */
+.structures-supplied-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.structures-supplied-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+.structures-supplied-list .bullet-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: #FACC15;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+/* Supplied Teeth Pills */
+.supplied-teeth-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tooth-pill-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: 3px 6px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.tooth-pill-btn:hover {
+  background-color: rgba(250, 204, 21, 0.15);
+  border-color: #FACC15;
+}
+
+.tooth-pill-fdi {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: #FACC15;
+}
+
+.tooth-pill-name {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+/* Major Branches Tag Cloud */
+.branches-tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.branch-tag {
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 10px;
+  padding: 3px 7px;
+  border-radius: var(--radius-xs);
+}
+
+/* Clinical Significance Box */
+.clinical-significance-box {
+  background-color: rgba(30, 41, 59, 0.7);
+  border-left: 3px solid #38BDF8;
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  padding: 8px 10px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+/* Anesthesia Cards */
+.anesthesia-cards-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.anesthesia-block-card {
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.anesthesia-block-card .block-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.anesthesia-block-card .block-syringe-icon {
+  color: #F59E0B;
+}
+
+.anesthesia-block-card .block-name {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.anesthesia-block-card .block-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+}
+
+.anesthesia-block-card .field-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.anesthesia-block-card .field-val {
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.anesthesia-block-card .field-val.highlight {
+  color: #38BDF8;
+  font-weight: 500;
+}
+
+.anesthesia-block-card .field-val.failure-tag {
+  color: #F87171;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.anesthesia-block-card .block-complications {
+  margin-top: 4px;
+  padding-top: 5px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.anesthesia-block-card .block-complications ul {
+  margin: 4px 0 0 16px;
+  padding: 0;
+  font-size: 10px;
+  color: #94A3B8;
+  line-height: 1.4;
+}
+
+/* Board Revision Card */
+.revision-card {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(15, 23, 42, 0.8));
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.revision-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #FACC15;
+}
+
+.revision-body {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #F1F5F9;
+}
+
+/* Neural Primary Action Button */
+.clinical-action-btn.neural-primary {
+  background-color: #FACC15;
+  color: #0F172A;
+  font-weight: 600;
+}
+
+.clinical-action-btn.neural-primary:hover {
+  background-color: #FDE047;
+}
+
+/* Viewport Neural Hover Badge */
+.viewport-hover-badge.neural {
+  border-color: rgba(250, 204, 21, 0.6);
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.25);
+}
+
+.viewport-hover-badge .badge-neural-icon {
+  color: #FACC15;
+  display: flex;
+  align-items: center;
+}
+
+/* Innervated Tooth Highlight in Odontogram */
+.clinical-tooth-btn.nerve-innervated {
+  border-color: #FACC15 !important;
+  background-color: rgba(250, 204, 21, 0.18) !important;
+  box-shadow: 0 0 6px rgba(250, 204, 21, 0.4) !important;
+  color: #FFF !important;
+}
+
+.dock-color-active-pill.neural {
+  background-color: rgba(250, 204, 21, 0.2);
+  color: #FACC15;
+  border: 1px solid rgba(250, 204, 21, 0.45);
+}
+
+/* Loading & Error States */
+.inspector-loading-state,
+.inspector-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  text-align: center;
+  gap: 12px;
+}
+
+.loading-spinner-ring {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(250, 204, 21, 0.2);
+  border-top-color: #FACC15;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-state-text {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.inspector-error-state .error-icon {
+  color: #EF4444;
+}
+
+.inspector-error-state .error-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.inspector-error-state .error-msg {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.retry-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.retry-btn:hover {
+  background-color: var(--surface-hover);
+  border-color: #38BDF8;
+}
+
+.empty-tab-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+/* Division Filter Chips in Top HUD */
+.hud-division-strip {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background-color: rgba(17, 25, 35, 0.92);
+  border: 1px solid rgba(250, 204, 21, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 2px 4px;
+}
+
+.hud-division-chip {
+  background: transparent;
+  border: none;
+  font-size: 10px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-secondary);
+  padding: 3px 6px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.hud-division-chip:hover {
+  color: #FACC15;
+}
+
+.hud-division-chip.active {
+  background-color: #FACC15;
+  color: #0F172A;
+  font-weight: 700;
+}
+/* ==========================================================================
+   3D Anatomical Callout Label Pins (Html overlay inside Canvas)
+   ========================================================================== */
+
+.nerve-3d-pin {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  user-select: none;
+  /* Compact chip defaults */
+  background-color: rgba(10, 15, 25, 0.82);
+  border: 1px solid rgba(250, 204, 21, 0.55);
+  border-radius: 20px;
+  padding: 3px 8px 3px 5px;
+  white-space: nowrap;
+  pointer-events: auto;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    padding 0.15s ease;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+  /* Prevent labels from being selectable / interfering with orbit */
+  -webkit-user-select: none;
+}
+
+.nerve-3d-pin:hover,
+.nerve-3d-pin.hovered {
+  background-color: rgba(250, 204, 21, 0.18);
+  border-color: #FACC15;
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.4), 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.nerve-3d-pin.selected {
+  background-color: rgba(250, 204, 21, 0.28);
+  border-color: #FACC15;
+  box-shadow: 0 0 14px rgba(250, 204, 21, 0.6), 0 2px 10px rgba(0, 0, 0, 0.7);
+}
+
+/* Leader dot */
+.pin-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #FACC15;
+  flex-shrink: 0;
+  box-shadow: 0 0 4px rgba(250, 204, 21, 0.8);
+  transition: transform 0.15s ease;
+}
+
+.nerve-3d-pin:hover .pin-dot,
+.nerve-3d-pin.hovered .pin-dot,
+.nerve-3d-pin.selected .pin-dot {
+  transform: scale(1.3);
+}
+
+/* Abbreviation — always visible */
+.pin-abbr {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: #FACC15;
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+/* Full name — hidden by default, slides in on hover or selection */
+.pin-name {
+  font-family: var(--font-sans);
+  font-size: 9.5px;
+  font-weight: 500;
+  color: #E2E8F0;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  /* Collapsed by default */
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    max-width 0.2s ease,
+    opacity 0.18s ease,
+    margin-left 0.15s ease;
+}
+
+.nerve-3d-pin:hover .pin-name,
+.nerve-3d-pin.hovered .pin-name,
+.nerve-3d-pin.selected .pin-name {
+  max-width: 200px;
+  opacity: 1;
+  margin-left: 2px;
+}
+
+/* Selected state abbreviation is white */
+.nerve-3d-pin.selected .pin-abbr {
+  color: #fff;
+}
+
+/* =========================================================================
+   ARCH ISOLATION & SOLO MODE STYLING
+   ========================================================================= */
+
+/* Floating Arch Action Banner inside Viewport */
+.arch-action-banner {
+  position: absolute;
+  top: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 10px;
+  padding: 8px 16px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 0 15px rgba(56, 189, 248, 0.2);
+  animation: bannerFadeIn 0.22s ease-out;
+}
+
+@keyframes bannerFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.arch-banner-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.arch-banner-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #38BDF8;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.arch-tag-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #38BDF8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.9);
+}
+
+.arch-banner-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #F1F5F9;
+  white-space: nowrap;
+}
+
+.arch-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.arch-banner-btn.primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #0284C7, #0369A1);
+  color: #FFFFFF;
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.arch-banner-btn.primary:hover {
+  background: linear-gradient(135deg, #0369A1, #075985);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+  transform: translateY(-1px);
+}
+
+.arch-banner-btn.primary.active {
+  background: linear-gradient(135deg, #059669, #047857);
+  border-color: rgba(52, 211, 153, 0.6);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+}
+
+.arch-banner-btn.close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94A3B8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.arch-banner-btn.close:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #F87171;
+}
+
+/* Persistent Arch Solo Status Indicator */
+.arch-solo-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 11px;
+  color: #E2E8F0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  animation: fadeIn 0.15s ease-out;
+}
+
+.solo-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #38BDF8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.9);
+  animation: pulseSoloDot 1.8s infinite;
+}
+
+@keyframes pulseSoloDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.solo-exit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 12px;
+  color: #38BDF8;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.solo-exit-btn:hover {
+  background: rgba(56, 189, 248, 0.24);
+  color: #FFFFFF;
+  border-color: rgba(56, 189, 248, 0.6);
+}
+
+/* Odontogram Arch Solo Chips */
+.arch-solo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  color: #94A3B8;
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  margin-left: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.arch-solo-chip:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #38BDF8;
+}
+
+.arch-solo-chip.active {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #34D399;
+  font-weight: 700;
+}
+
+/* Dimmed Odontogram Row when Arch is Hidden in 3D */
+.odontogram-arch-row.arch-hidden-in-3d {
+  opacity: 0.36;
+  filter: grayscale(0.5);
+  transition: opacity 0.25s ease, filter 0.25s ease;
+}
+
+.odontogram-arch-row.arch-hidden-in-3d:hover {
+  opacity: 0.65;
+  filter: grayscale(0.2);
+}
+
+.arch-hidden-tag {
+  font-size: 9px;
+  color: #EF4444;
+  font-weight: 600;
+  margin-left: 6px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+}
+
+/* Arch Detail Card in Inspector */
+.card-type-badge.arch {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38BDF8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
+.arch-solo-action-box {
+  margin: 12px 0 16px;
+}
+
+.arch-solo-toggle-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.15), rgba(3, 105, 161, 0.08));
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 8px;
+  color: #38BDF8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.arch-solo-toggle-btn:hover {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.25), rgba(3, 105, 161, 0.15));
+  border-color: rgba(56, 189, 248, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2);
+}
+
+.arch-solo-toggle-btn.active {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.1));
+  border-color: rgba(52, 211, 153, 0.55);
+  color: #34D399;
+}
+
+.btn-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.btn-main-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.btn-sub-label {
+  font-size: 10px;
+  color: #94A3B8;
+  font-weight: 400;
+}
+
+.arch-solo-toggle-btn.active .btn-sub-label {
+  color: #A7F3D0;
+}
+
+.type-filter-chip.arch-solo {
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38BDF8;
+  font-weight: 600;
+}
+
+.type-filter-chip.arch-solo:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38BDF8;
+}
+
+.type-filter-chip.arch-solo.active {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: #34D399;
+  color: #34D399;
+}
+
+.viewport-hover-badge.arch {
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
